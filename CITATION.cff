@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying EMSICA-PAC manuscript."
+title: "Extended EMSICA-PAC demonstration"
+type: software
+authors:
+  - family-names: Tsai
+    given-names: Arthur C.
+repository-code: "https://github.com/arthurctsai/emsica-pac"
