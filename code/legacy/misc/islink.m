@@ -1,38 +1,33 @@
-% This function checks if the directory exists and is not a symbolic link.
-% % Example 1:
-% cd /1_esspfmriyear1/7raicar/3ica/ICs'
-% ls clusters.txt
-% islink('clusters.txt')
-% ans: 1
-% Example 2:
-% Check if the given mridir is a symbolic link
-% eg. I have a mri directory which is linked to other place
-% mri -> ../.colin27/mri
+% islink() Check whether a file or folder is a symbolic link.
+%
+% [isLink,result] = islink(filepath) returns 1 when filepath is a symbolic
+% link, 0 when it is not, and -1 when the file or folder does not exist.
+%
+% Input:
+%   filepath - Path to the file or folder to check.
+%
+% Outputs:
+%   isLink - Symbolic-link status: 1, 0, or -1.
+%   result - Text returned by the underlying `ls -l` command.
+%
+% Examples:
+%   islink('clusters.txt')
+%   islink('../.colin27/mri')
+%
+% % ======================== (1) Query filesystem =========================
+%
+% Execute the ls -l command to get the details of the file or folder
+%
+% Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026
+% Copyright (c) 2026 Extended EMSICA-PAC contributors
+% SPDX-License-Identifier: BSD-3-Clause
 
 function [isLink,result ]= islink(filepath)
-% ISLINK - Check if a file or folder is a symbolic link
-%
-%   ISLINK = ISLINK(FILEPATH) returns 1 if the specified FILEPATH is
-%   a symbolic link, 0 if it is not, and -1 if the file or folder does
-%   not exist.
-%
-%   Inputs:
-%       FILEPATH - Path to the file or folder to check.
-%
-%   Outputs:
-%       ISLINK - Returns 1 if the file or folder is a symbolic link,
-%                returns 0 if it is not, and returns -1 if the file or
-%                folder does not exist.
-%
-%   Example:
-%       isLink = islink('/path/to/file_or_folder')
-%
-%   Author: [Author Name]
-%   Email: [Author Email]
-%   Date: [Date]
+% 123456789012345678901234567890123456789012345678901234567890123456789012345678
 
-% Execute the ls -l command to get the details of the file or folder
 [status, result] = system(['ls -l ', filepath]);
+
+%% ========================== (1) Interpret result ===========================
 
 % Check if the command executed successfully
 if status == 0
@@ -51,4 +46,3 @@ else
 end
 
 end
-

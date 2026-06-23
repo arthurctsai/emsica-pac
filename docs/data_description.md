@@ -1,17 +1,13 @@
 # Demo data
 
-The EEG signals in `2epochs/EPs-synth` are synthetic signals projected through
-the `zm09` forward model. Large `synthBS` test matrices and the redundant
-`X.mat` sensor-data copy were removed from the public demo; they are not used by
-the Extended EMSICA or PAC workflows provided here.
+`demodata/zm09` is immutable packaged input. It retains the original numbered
+workflow lineage:
 
-Before public distribution, confirm that the original consent and institutional
-data-governance terms permit redistribution of the anatomy-derived surfaces and
-lead-field files. The release should contain no raw MRI volume or direct
-identifier.
+- `2epochs/EPs-synth`: synthetic ground truth and its PAC cache;
+- `3ica/ICs-synth-infomax`: Infomax ICA + sLORETA baseline and PAC cache;
+- `5lfm/source_plot_geometry.mat`: compact reduced meshes for source plots;
+- `6emsica/B0-synth-infomax`: cached EMSICA initializer;
 
-The three `zm09.fdt` signal files are each approximately 176 MiB and exceed
-GitHub's ordinary per-file size limit. Track binary demo data with Git LFS, or
-deposit the dataset in a versioned scientific archive and retain checksums plus
-a download script here. The complete compact repository is approximately
-597 MiB.
+New training runs belong under `outputs/zm09/6emsica/`. The omitted topology,
+index, duplicate `zm09-all`, and forward-model cache files are not required by
+the packaged cached-B0 workflow.

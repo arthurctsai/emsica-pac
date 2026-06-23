@@ -1,12 +1,8 @@
 function config = setup_emsica_pac()
-% setup_emsica_pac() Configure the standalone EMSICA-PAC demonstration.
+% setup_emsica_pac() Configure the standalone EEGLAB EMSICA-PAC demo.
 %
-% Author: Arthur C. Tsai
-% Email: arthur@stat.sinica.edu.tw; arthurctsai@gmail.com
 % Copyright (c) Extended EMSICA-PAC contributors
 % SPDX-License-Identifier: BSD-3-Clause
-
-% 123456789012345678901234567890123456789012345678901234567890123456789012345678
 
 rootdir = fileparts(mfilename('fullpath'));
 study_root = fullfile(rootdir, 'demodata');
@@ -20,8 +16,7 @@ setenv('EMSICA_PAC_STUDY_ROOT', study_root);
 setenv('EMSICA_PAC_OUTPUT_DIR', output_dir);
 setenv('SUBJECTS_DIR', study_root);
 
-legacy_root = fullfile(rootdir, 'code', 'legacy');
-addpath(genpath(legacy_root), '-begin');
+addpath(genpath(fullfile(rootdir, 'code', 'legacy')), '-begin');
 addpath(fullfile(rootdir, 'code', 'portable'), '-begin');
 addpath(fullfile(rootdir, 'tests'), '-begin');
 addpath(rootdir, '-begin');
@@ -34,13 +29,16 @@ end
 if isempty(which('pop_loadset'))
   error('setup_emsica_pac:MissingEEGLAB', ...
     ['EEGLAB is required. Add EEGLAB to the MATLAB path or set ' ...
-     'the EEGLAB_ROOT environment variable before running setup_emsica_pac.']);
+     'EEGLAB_ROOT before running setup_emsica_pac.']);
 end
 
 config = struct('root', rootdir, 'study_root', study_root, ...
   'subject_dir', fullfile(study_root, 'zm09'), ...
-  'output_dir', output_dir, 'eeglab', fileparts(which('eeglab')));
+  'output_dir', output_dir, ...
+  'run_dir', fullfile(output_dir, 'zm09'), ...
+  'result_root', fullfile(output_dir, 'zm09', '6emsica'), ...
+  'eeglab', fileparts(which('eeglab')));
 fprintf('EMSICA-PAC root: %s\n', rootdir);
-fprintf('Demo subject:    %s\n', config.subject_dir);
-fprintf('Outputs:         %s\n', output_dir);
+fprintf('Immutable data: %s\n', config.subject_dir);
+fprintf('Generated runs: %s\n', config.run_dir);
 end

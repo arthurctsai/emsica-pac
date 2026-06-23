@@ -1,63 +1,63 @@
-% runemsica_cpu_tidy() Extended EMSICA training with constrained B updates.
+% gradientemsica_cpu_tidy() Extended EMSICA training with constrained B updates.
 %
-  %  Model:
-  %    x(t) = L B s(t), with A = L B and u(t) = A^{-1} x(t).
-  %
-  %  This public implementation is the Extended EMSICA workflow: sign
-  %  adaptation, progressive temporal/spatial weighting, and the direct
-  %  Euclidean B-space update are always enabled.
-  %
-  %  Learning-rule variables:
-  %    A = L B
-  %    u = A^{-1} x + bias 1^T
-  %    varphi = -(signs * tanh(u) + u)
-  %    G = (1/block) varphi u^T
-  %
-  %  Current learning rule:
-  %    1) Temporal-gradient term:
-  %         grad_temporal = -L^T (A^{-1})^T * block * (I + G)
-  %    2) Spatial regularizers:
-  %         grad_sparse = -2 myalpha tanh(B)
-  %         grad_smooth = -mybeta invC B
-  %    3) B-space update:
-  %         Delta_B = r(step) grad_temporal + (1-r(step)) (grad_sparse + grad_smooth)
-  %         B_try = B + eta_B lrate Delta_B
-  %         where eta_B is the retry-loop damping factor for the whole B-space update,
-  %         and, when enabled,
-  %         r(step) = r_begin + (r_end - r_begin) * (exp(k * progress) - 1) / (exp(k) - 1),
-  %         with progress = min(step / ramp_steps, 1) and k = 5.
-  %         So it starts near r_begin, rises slowly at first, and reaches
-  %         r_end by the end of the ramp.
-  %    4) Accept/reject:
-  %         accept B_try only if normalized_repulsion_energy(B_try)
-  %         <= normalized_repulsion_energy(B) + 0.0005.
-  %         If rejected, halve eta_B and retry the same Delta_B pattern.
-  %         If all retries fail, keep the old B and continue to the next
-  %         block iteration.
-  %    5) Bias update:
-  %         bias <- bias + lrate * mean(varphi, 2) * block
-  %         This bias step is self-consistent with the chosen score varphi,
-  %         not identical to runica or runica_a.
-  %
-  %  Temporal tracking note for synth runs:
-  %    EMSICA is intentionally evaluated on the same synthetic Xtilde used
-  %    by the current method/run, where Xtilde = sph*x_clean in the synth
-  %    wrapper path. In synth mode the tracked temporal target is
-  %    (L*target_B)\Xtilde, so the temporal score reflects recovery on that
-  %    run's own Infomax-initialized data rather than on an external shared
-  %    X_ref.
-  % 
-  % 2026-01-18 arthur
+%  Model:
+%    x(t) = L B s(t), with A = L B and u(t) = A^{-1} x(t).
+%
+%  This public implementation is the Extended EMSICA workflow: sign
+%  adaptation, progressive temporal/spatial weighting, and the direct
+%  Euclidean B-space update are always enabled.
+%
+%  Learning-rule variables:
+%    A = L B
+%    u = A^{-1} x + bias 1^T
+%    varphi = -(signs * tanh(u) + u)
+%    G = (1/block) varphi u^T
+%
+%  Current learning rule:
+%    1) Temporal-gradient term:
+%         grad_temporal = -L^T (A^{-1})^T * block * (I + G)
+%    2) Spatial regularizers:
+%         grad_sparse = -2 myalpha tanh(B)
+%         grad_smooth = -mybeta invC B
+%    3) B-space update:
+%         Delta_B = r(step) grad_temporal + (1-r(step)) (grad_sparse + grad_smooth)
+%         B_try = B + eta_B lrate Delta_B
+%         where eta_B is the retry-loop damping factor for the whole B-space update,
+%         and, when enabled,
+%         r(step) = r_begin + (r_end - r_begin) * (exp(k * progress) - 1) / (exp(k) - 1),
+%         with progress = min(step / ramp_steps, 1) and k = 5.
+%         So it starts near r_begin, rises slowly at first, and reaches
+%         r_end by the end of the ramp.
+%    4) Accept/reject:
+%         accept B_try only if normalized_repulsion_energy(B_try)
+%         <= normalized_repulsion_energy(B) + 0.0005.
+%         If rejected, halve eta_B and retry the same Delta_B pattern.
+%         If all retries fail, keep the old B and continue to the next
+%         block iteration.
+%    5) Bias update:
+%         bias <- bias + lrate * mean(varphi, 2) * block
+%         This bias step is self-consistent with the chosen score varphi,
+%         not identical to runica or runica_a.
+%
+%  Temporal tracking note for synth runs:
+%    EMSICA is intentionally evaluated on the same synthetic Xtilde used
+%    by the current method/run, where Xtilde = sph*x_clean in the synth
+%    wrapper path. In synth mode the tracked temporal target is
+%    (L*target_B)\Xtilde, so the temporal score reflects recovery on that
+%    run's own Infomax-initialized data rather than on an external shared
+%    X_ref.
+%
+% 2026-01-18 arthur
 %
 % Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026
 % Copyright (c) 2026 Extended EMSICA-PAC contributors
 % SPDX-License-Identifier: BSD-3-Clause
 
-function [w, a, B, U, bias, signs, meanvar] = runemsica_cpu_tidy(s, X, L, B0, invC, Imat, groundtruth)
+function [w, a, B, U, bias, signs, meanvar] = gradientemsica_cpu_tidy(s, X, L, B0, invC, Imat, groundtruth)
   if nargin < 7
     groundtruth = [];
   end
-  s = get_info(s);
+  s = normalize_config_local(s);
 % 123456789012345678901234567890123456789012345678901234567890123456789012345678
 
 config_myalpha = [];
@@ -102,19 +102,22 @@ if isfield(s, 'emsica') && isstruct(s.emsica)
     config_runemsica_log_suffix = char(s.emsica.runemsica_log_suffix);
   end
 end
-% Start the diary early so epoch-0 / initializer diagnostics are captured.
-% tStamp = datestr(now, 'yyyy-mm-dd_HH-MM');
-% fileName = ['~/emsicalab/emsica/' s.subject '_runemsica_log_', tStamp, '.txt'];
-log_suffix = strtrim(char(config_runemsica_log_suffix));
-if isempty(log_suffix)
-  fileName = fullfile(emsica_pac_log_dir_local(), [s.subject '_runemsica_log.txt']);
+% Reuse the caller's diary when available so one log captures the full run.
+ownsDiary = ~isfield(s, 'diaryfile') || isempty(s.diaryfile);
+if ownsDiary
+  log_suffix = strtrim(char(config_runemsica_log_suffix));
+  if isempty(log_suffix)
+    fileName = fullfile(emsica_pac_log_dir_local(), [s.subject '_runemsica_log.txt']);
+  else
+    fileName = fullfile(emsica_pac_log_dir_local(), ...
+      [s.subject '_runemsica_log_' log_suffix '.txt']);
+  end
+  if exist(fileName, 'file'), delete(fileName); end
+  diary(fileName);
 else
-  fileName = fullfile(emsica_pac_log_dir_local(), [s.subject '_runemsica_log_' log_suffix '.txt']);
+  fileName = char(string(s.diaryfile));
 end
-if exist(fileName, 'file'), backupfile(fileName); end
-myrm(fileName);
-mdisp('yellow', ['diary log on ' fileName]);
-diary(fileName)
+fprintf('Diary log: %s\n', fileName);
 
 sim_run_args = struct();
 if isfield(s, 'emsica') && isstruct(s.emsica) && ...
@@ -132,7 +135,7 @@ if ~isfield(sim_run_args, 'enable_diagnostics'), sim_run_args.enable_diagnostics
 if ~isfield(sim_run_args, 'diagnostics_stride'), sim_run_args.diagnostics_stride = config_diagnostics_stride; end
 if ~isfield(sim_run_args, 'runemsica_log_suffix'), sim_run_args.runemsica_log_suffix = config_runemsica_log_suffix; end
 
-  %% =========================== Dimensions ============================
+%% ============================= (1) Dimensions ==============================
   [I, T] = size(X); [~, K] = size(B0);
 
 % ---- rescale L 2026-02-17 ----
@@ -190,7 +193,7 @@ if ~isempty(config_spatiotemporal_mix_r_end)
   spatiotemporal_mix_r_end = config_spatiotemporal_mix_r_end;
 end
 suggest_spatial_weight_step = 2;
-%% ============================ (1) Defaults =============================
+%% ============================== (2) Defaults ===============================
 invC = 0.5*(invC + invC');                  % symmetrize the spatial precision matrix
 invC = invC / norm(invC,'fro');     % make invC scale = 1
 target_B = [];
@@ -203,7 +206,7 @@ if ~isempty(groundtruth) && isstruct(groundtruth)
 end
 
 
-%% ============== (2) Stopping Rule (Simple + Robust) ============== %<--
+%% ================= (3) Stopping Rule (Simple + Robust) %< ==================
 patience   = 5;        %<-- consecutive steps required to be "small"
 rel_tol    = 1e-4;     %<-- relative B-change tolerance
 
@@ -264,7 +267,7 @@ end
 pilot_skip_inner_B = (maxsteps > 0) && (maxsteps <= suggest_spatial_weight_step);
 pilot_skip_inner_B_notified = false;
 
-%% =================== (3) Runica-Like Header Logs ====================
+%% ======================= (4) Runica-Like Header Logs =======================
 fprintf('\nInput data size [%d,%d] = %d channels, %d frames\n', I, T, I, T);
 fprintf('Finding %d components for Extended EMSICA model, x(t) = LBs(t).\n', K);
 fprintf('Kurtosis will be calculated initially every %d blocks using %d data points.\n', extblocks, kurtsize);
@@ -274,7 +277,7 @@ fprintf('Learning rate will be multiplied by %g whenever angledelta >= %g deg.\n
 fprintf('Training will end when relchg (and energies, if enabled) plateau or after %d steps.\n', maxsteps); %<--
 fprintf('Online bias adjustment will be used.\n');
 
-%% =========================== (4) Preprocess ============================
+%% ============================= (5) Preprocess ==============================
 X = X - mean(X, 2);
 fprintf('Removing mean of each channel ...\n');
 fprintf('Final training data range: %g to %g\n', min(X(:)), max(X(:)));
@@ -285,7 +288,7 @@ sgn = ones(1,K);
 sgn(1:nsub) = -1;
 signs = diag(sgn);
 
-%% ============================== (5) Init ===============================
+%% ================================ (6) Init =================================
 B    = B0;                     % <-- B-space parameter
 if ~isempty(target_B)
   target_B = cast(target_B, 'like', B0);
@@ -305,13 +308,13 @@ if ~isempty(target_B)
 end
 
 if maxsteps <= 0
-  mdisp('yellow', ['runemsica_cpu_tidy(): maxsteps=' num2str(maxsteps) ', skip gradient updates after preprocessing/normalization.']);
+  fprintf('gradientemsica_cpu_tidy(): maxsteps=%d; skipping gradient updates.\n', maxsteps);
   fprintf('Skipping EMSICA gradient training because maxsteps=%d after preprocessing/normalization.\n', maxsteps);
   a = L * B;
   w = a \ eye(size(a,1));
   U = w * double(X);
   meanvar = sum(a.^2) .* sum((U').^2) / ((I*T)-1);
-  diary off;
+  if ownsDiary, diary off; end
   return;
 end
 
@@ -378,7 +381,7 @@ startB  = B;                   % <-- restart anchor in B-space
 oldB    = B;
 stop_training_early = false;
 
-%% ========================= (7) Training Loop ==========================
+%% ============================ (7) Training Loop ============================
 while step < maxsteps
   timeperm = randperm(T);
   eta_B_epoch = NaN;
@@ -394,7 +397,7 @@ while step < maxsteps
     a = L * B;                                                              % <-- a is current mixing (I x K)
     rcondA = rcond(double(a));
     if ~isfinite(rcondA) || rcondA < 1e-12
-      illCondMsg = sprintf(['runemsica_cpu_tidy(): rcond(L*B)=%.3e is too small ' ...
+      illCondMsg = sprintf(['gradientemsica_cpu_tidy(): rcond(L*B)=%.3e is too small ' ...
         '(step=%d, blockno=%d).'], rcondA, step, blockno);
       error('runemsica:IllConditionedA', '%s', illCondMsg);
     end
@@ -420,7 +423,7 @@ while step < maxsteps
     % ---- constrained direct update in B space ----
     if pilot_skip_inner_B
       if ~pilot_skip_inner_B_notified
-        mdisp('yellow', 'pilot-calibration: skipping the B update for a short calibration run.');
+        fprintf('Pilot calibration: skipping the B update for a short run.\n');
         pilot_skip_inner_B_notified = true;
       end
     else
@@ -463,10 +466,10 @@ while step < maxsteps
       if ~isempty(target_B) && isfinite(spatialCorrAccB0)
         spatialCorrAccB_after_inner = compute_spatial_corr_accuracy(B, target_B);
         if isfinite(spatialCorrAccB_after_inner) && spatialCorrAccB_after_inner < spatialCorrAccB0
-          mdisp('red', sprintf(['Early stopping EMSICA: spatialCorrAcc(B)=%.6f dropped below ' ...
+          fprintf(2, ['Early stopping EMSICA: spatialCorrAcc(B)=%.6f dropped below ' ...
             'spatialCorrAcc(B0)=%.6f at step=%d, blockno=%d. ' ...
             'Parameters r, myalpha, or mybeta may not be set appropriately.'], ...
-            spatialCorrAccB_after_inner, spatialCorrAccB0, step, blockno));
+            spatialCorrAccB_after_inner, spatialCorrAccB0, step, blockno);
           stop_training_early = true;
           break;
         end
@@ -530,7 +533,7 @@ bias   = bias + lrate * mean(varphi,2) * block;  % or sum(varphi,2)
 
     lrate = lrate * DEFAULT_RESTART_FAC;
     if lrate < MIN_LRATE
-      mdisp('red', 'quitting (B blew up).');
+      fprintf(2, 'Quitting because B blew up.\n');
       % keyboard
     end
 
@@ -543,7 +546,7 @@ bias   = bias + lrate * mean(varphi,2) * block;  % or sum(varphi,2)
     continue
   end
 
-  %% ====================== Step Logs + Annealing ======================
+%% ======================== (8) Step Logs + Annealing ========================
   step = step + 1;
 
   dB    = B - oldB;                                              % <-- delta in B-space
@@ -568,8 +571,8 @@ bias   = bias + lrate * mean(varphi,2) * block;  % or sum(varphi,2)
     lrate_prev = lrate;                                                   %<--
     lrate = lrate * annealstep;                                           %<--
     diag_epoch_anneal_events = diag_epoch_anneal_events + 1;
-    mdisp('yellow', sprintf('anneal fired: angledelta %.1f deg > %.1f deg | lrate %.9g->%.9g', ...
-      degconst*angledelta, annealdeg, lrate_prev, lrate)); %<--
+    fprintf('Anneal: angledelta %.1f deg > %.1f deg | lrate %.9g -> %.9g\n', ...
+      degconst*angledelta, annealdeg, lrate_prev, lrate); %<--
     olddelta  = dvec;                                                     %<--
     oldchange = dnorm;                                                    %<--
   elseif step == 1                                                        %<--
@@ -577,12 +580,12 @@ bias   = bias + lrate * mean(varphi,2) * block;  % or sum(varphi,2)
     oldchange = dnorm;                                                    %<--
   end                                                                     %<--
 
-  %% ============== (2) Stopping Rule (Simple + Robust) ============== %<--
+%% ================= (9) Stopping Rule (Simple + Robust) %< ==================
   if step >= patience                                                %<--
     win = (step-patience+1):step;                                  %<--
     ok_rel = max(relchg_hist(win)) < rel_tol;                      %<--
     if ok_rel                                                    %<--
-      mdisp('yellow', ['Stopping: relchg plateau for ' num2str(patience) ' steps.']); %<--
+      fprintf('Stopping: relchg plateau for %d steps.\n', patience); %<--
       diag_converged = true;
       diag_stop_reason = 'relchg_plateau';
       stop_training_early = true;                              %<--
@@ -636,15 +639,14 @@ if diagnostics_enabled
     diag_total_rejected_updates, diag_total_retries, diag_total_anneal_events);
 end
 
-diary off;
-
 [~, hn] = system('hostname');              % includes newline
 hn = strtrim(hn);
-mdisp('yellow', ['Finished and the diary log is on ' hn ':' fileName]);
+fprintf('Finished. Diary log: %s:%s\n', hn, fileName);
+if ownsDiary, diary off; end
 % keyboard
 
 
-%% ======================= (8) Finalize Outputs =========================
+%% ========================== (10) Finalize Outputs ==========================
 a = L * B;                                                        % <-- final A
 w = a \ eye(size(a,1));                    % <-- if you truly need explicit W
 
@@ -675,7 +677,7 @@ signs = sg(windex);
 
 
 
-%% ============= Helper: (1) Compute spatial correlation accuracy =============
+%% ============ Helper: (1) Compute spatial correlation accuracy =============
 function acc = compute_spatial_corr_accuracy(B, target_B)
 Bd = double(B);
 Td = double(target_B);
@@ -702,7 +704,7 @@ end
 acc = mean(scores, 'omitnan');
 end
 
-%% =============== Helper: (2) Compute temporal correlation accuracy ===============
+%% ============ Helper: (2) Compute temporal correlation accuracy ============
 function acc = compute_temporal_corr_accuracy(U_est, U_target)
 Ud = double(U_est);
 Td = double(U_target);
@@ -729,7 +731,7 @@ end
 acc = mean(scores, 'omitnan');
 end
 
-%% =============== Helper: (3) Find best component assignment ===============
+%% =============== Helper: (3) Find best component assignment ================
 function [bestPerm, bestScores] = spatial_best_component_assignment(C)
 Ktruth = size(C,1);
 Kest = size(C,2);
@@ -753,7 +755,7 @@ end
 bestScores = C(sub2ind(size(C), 1:Ktruth, bestPerm));
 end
 
-%% ==================== Helper: (4) Compute fast correlation ====================
+%% ================== Helper: (4) Compute fast correlation ===================
 function r = spatial_fastcorr(x, y)
 x = double(x(:));
 y = double(y(:));
@@ -796,7 +798,7 @@ diag_step(diag_n) = step;
 diag_temporal_mix_r(diag_n) = temporal_mix_r;
 diag_lrate(diag_n) = lrate;
 diag_eta_B(diag_n) = eta_B_epoch;
-[diag_maxCosB(diag_n), diag_EoffB(diag_n)] = compute_spatial_collapse_metrics(B);
+[diag_maxCosB(diag_n), diag_EoffB(diag_n)] = compute_spatial_collapse_metrics_local(B);
 A = double(L) * double(B);
 [diag_condA(diag_n), diag_sigmaMinA(diag_n), diag_rcondA(diag_n)] = matrix_health_metrics(A);
 diag_relchg(diag_n) = relchg;
@@ -830,7 +832,7 @@ function save_emsica_diagnostics(s, B, L, step, maxsteps, converged, ...
 
 A = double(L) * double(B);
 [final_condA, final_sigmaMinA, final_rcondA] = matrix_health_metrics(A);
-[final_maxCosB, final_EoffB] = compute_spatial_collapse_metrics(B);
+[final_maxCosB, final_EoffB] = compute_spatial_collapse_metrics_local(B);
 idx = 1:diag_n;
 total_proposed_updates = total_accepted_updates + total_rejected_updates;
 trajectory_lrate = diag_lrate(idx);
@@ -893,7 +895,7 @@ catch err
   warning('runemsica:DiagnosticsCsvWriteFailed', ...
     'Could not write emsica_diagnostics_trajectory.csv: %s', err.message);
 end
-fprintf('runemsica_cpu_tidy(): saved diagnostics to %s\n', fullfile(outdir, 'emsica_diagnostics.mat'));
+fprintf('gradientemsica_cpu_tidy(): saved diagnostics to %s\n', fullfile(outdir, 'emsica_diagnostics.mat'));
 end
 
 function [condA, sigmaMinA, rcondA] = matrix_health_metrics(A)
@@ -957,7 +959,7 @@ else
 end
 end
 
-%% ================= Helper: (7) Compute normalized repulsion energy =================
+%% ============= Helper: (5) Compute normalized repulsion energy =============
 function energy = normalized_repulsion_energy(B)
 Bd = double(B);
 [~, Klocal] = size(Bd);
@@ -1015,6 +1017,35 @@ else
   temporal_mix_r_unit = (exp(spatiotemporal_mix_exp_k * progress) - 1) / denom;
 end
 temporal_mix_r = spatiotemporal_mix_r_begin + (spatiotemporal_mix_r_end - spatiotemporal_mix_r_begin) * temporal_mix_r_unit;
+end
+
+function s = normalize_config_local(s)
+if ~isstruct(s)
+  s = struct('subject', char(string(s)));
+end
+if ~isfield(s, 'subject') || isempty(s.subject)
+  s.subject = 'demo';
+end
+if ~isfield(s, 'emsica') || ~isstruct(s.emsica)
+  s.emsica = struct();
+end
+end
+
+function [maxCosB, EoffB] = compute_spatial_collapse_metrics_local(B)
+B = double(B);
+if isempty(B) || any(~isfinite(B(:)))
+  maxCosB = NaN;
+  EoffB = NaN;
+  return
+end
+K = size(B, 2);
+norms = sqrt(sum(B.^2, 1));
+norms(norms <= eps) = eps;
+G = (B ./ norms)' * (B ./ norms);
+offdiag = G;
+offdiag(1:K+1:end) = 0;
+maxCosB = max(abs(offdiag(:)));
+EoffB = norm(G - eye(K), 'fro')^2;
 end
 
 end

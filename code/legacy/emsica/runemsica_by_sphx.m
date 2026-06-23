@@ -48,30 +48,24 @@ mymd(workingdir); cd(workingdir);
 strings = strsplit(s.workingdir, '/');
 dirname = strings{end-1}; % Adjusted to ignore the empty string after final '/'
 
-% ==== put log ====
-logfile = [workingdir 'log.txt'];
-% ~/1_zen/zm01/6emsica/ICsR16/log-runemsica_by_sphx_source_space-gradient.txt
-diaryfile = [workingdir 'log-' mfilename '-' emsicatype '.txt']; % diary on;
+% Capture setup, training, and result saving in one run log.
+ownsDiary = ~isfield(s, 'diaryfile') || isempty(s.diaryfile);
+if ownsDiary
+  diaryfile = [workingdir 'log-' mfilename '-' emsicatype '.txt'];
+  myrm(diaryfile);
+  diary(diaryfile);
+  diaryCleanup = onCleanup(@() diary('off')); %#ok<NASGU>
+else
+  diaryfile = char(string(s.diaryfile));
+end
 s.diaryfile = diaryfile;
 s.emsicatype = emsicatype;
-myrm(diaryfile); diary(diaryfile);
-logfid = fopen(logfile,'w');
 mdisp(' ');
-logprintf(logfid,'------------------------------------------------------------------\n %s %s\n------------------------------------------------------------------\n',[s.subject ' ' dirname ' :: ' mfilename() '() ::'], datestr(now, 'mmm dd, yyyy | HH:MM:SS'));
-% mdisp(' ');
-% logprintf(logfid,'workingdir = %s\n', workingdir);
-% logprintf(logfid,'%s\n', logfile);
-% logprintf(logfid,'lapmethod = %s\n', lapmethod);
-% logprintf(logfid,'emsicatype = %s\n',emsicatype);
-% logprintf(logfid,'s.emsica.lrate=%g\n',s.emsica.lrate);
-% logprintf(logfid,'s.emsica.stop=%g\n',s.emsica.stop);
-% logprintf(logfid,'s.emsica.maxsteps=%s\n',num2str(s.emsica.maxsteps));
-% logprintf(logfid,'s.emsica.annealstep=%f\n',s.emsica.annealstep);
-% logprintf(logfid,'s.emsica.annealdeg=%s\n',num2str(s.emsica.annealdeg));
-% logprintf(logfid,'s.emsica.mybeta=%f\n',s.emsica.mybeta);
-% logprintf(logfid,'s.emsica.myalpha=%f\n',s.emsica.myalpha);
-% logprintf(logfid,'s.emsica.run_likelihood = %s\n',num2str(s.emsica.run_likelihood));
-%  keyboard;
+fprintf(['------------------------------------------------------------------\n' ...
+  ' %s %s\n' ...
+  '------------------------------------------------------------------\n'], ...
+  [s.subject ' ' dirname ' :: ' mfilename() '() ::'], ...
+  datestr(now, 'mmm dd, yyyy | HH:MM:SS'));
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% setup B0dir according to emsicatype
@@ -365,7 +359,7 @@ if strcmp(emsicatype ,'gradient') || strcmp(emsicatype ,'fastemsica')
             end
             mdisp('yellow', ['Loaded EMSICA target ground truth from ' synthTruth.bfile]);
         end
-        [w, a, Btilde, S, bias, signs, meanvar] = runemsica_cpu_tidy(s, Xtilde, Ltilde, SigmainvB0, invC, eye(K,K), groundtruth);
+        [w, a, Btilde, S, bias, signs, meanvar] = gradientemsica_cpu_tidy(s, Xtilde, Ltilde, SigmainvB0, invC, eye(K,K), groundtruth);
         mdisp
         disp(signs')
       end
@@ -563,7 +557,7 @@ if 0
   %keyboard
 end
 
-diary off;
+if ownsDiary, diary off; end
 return
 
 % May 18, 2012 Arthur:

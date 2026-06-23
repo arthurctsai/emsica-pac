@@ -145,7 +145,7 @@ if ismember(emsicatype, {'gradient', 'fastemsica', 'bypass'})
   % 'ICsR01-synth/' → 'B0-synth/zm01.set'
   % 'ICs-lhrh/' → 'B0-lhrh/zm01.set'
 
-  % Prefer the explicitly requested B0 folder when provided by simulation_run().
+  % Prefer an explicitly requested B0 folder when provided by the caller.
   if isfield(s, 'emsica') && isstruct(s.emsica) && ...
       isfield(s.emsica, 'b0folder') && ~isempty(s.emsica.b0folder)
     explicitB0folder = char(string(s.emsica.b0folder));
@@ -191,22 +191,15 @@ end
 % read 6emsica/gradient/Btilde.mat the do the following steps to plot a lot of figures
 % 2013-06-18 in Seattle, arthur: 
 
-% sort components to align with 3ica/ICs/ 
-if ~contains(emsicafolder, 'synth') % not for simulation study 2025-10-18, align with topo67x67
-  EEG = sortcomps(s, EEG, 'emsicafolder',emsicafolder, 'features',{'topo67x67'}, 'method','3ica/ICs/');
-end
-% output: sortcomps-aligning_with_3ica_ICs_components_by_topo67x67.pngn[
-
-% sort components to align with 2epochs/EPs-synth/
-if contains(emsicafolder, 'synth') % for simulation study 2025-10-18
-  % [EEG, alignedcompcorr] = sortcomps(s, EEG, 'emsicafolder',emsicafolder, 'features',{'bmat'}, 'method','2epochs/EPs-synth/');
-  [EEG, alignedcompcorr] = sortcomps(s, EEG, 'emsicafolder',emsicafolder, 'features',{'topo67x67'}, 'method',synth_truth_folder);
+% The public package has one fixed four-source synthetic comparison. Align
+% directly by B.mat rather than the generic topology/clustering stack.
+if contains(emsicafolder, 'synth')
+  [EEG, alignedcompcorr] = align_synth_components(s, EEG, synth_truth_folder);
   msg = [':: ' s.subject ' :: In the ' emsicatype ...
-    ' stage, after sortcomps(), the aligned comps\ncorr == ' ...
+    ' stage, aligned spatial correlations == ' ...
     num2str(alignedcompcorr) ', \nand sum(corr)==' ...
     num2str(sum(alignedcompcorr)) newline newline];
-mdisp('yellow', msg);
-% alignedcompcorr % will disp alignedcompcorr at the end
+  mdisp('yellow', msg);
 end
 % keyboard
 if strcmp(plots,'off')

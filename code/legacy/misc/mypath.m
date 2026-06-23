@@ -1,16 +1,14 @@
-% mypath() 2020-12-20 arthur
+% mypath() Shorten an absolute path for display.
 %
-% eg. mypath(/Users/arthur/clouds/data/1_iaps_test/im98/1channels/CHs)
+% 2020-12-20 arthur
+%
 % return ~/clouds/data/1_iaps_test/im98/1channels/CHs
 % returnpath = strrep(thepath,'/Users/arthur','~');
-
+%
 % 2021-01-10 -arthur the following is better
 % /Volumes/WD4T/data/3_Li_grouping/grouping01/3ica -->
 % ~/data/3_Li_grouping/grouping01/3ica
-
-
-
-
+%
 % this function seems useless 2024-11-14
 %
 % Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026

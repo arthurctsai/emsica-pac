@@ -1,8 +1,8 @@
 % fill_and_plot_bb() which calls plot_b() and is good for debug.
 %
-%% =============================================================================
-%% fill_and_plot_bb() which calls plot_b() and is good for debug.
-%% =============================================================================
+% % =============================================================================
+% % fill_and_plot_bb() which calls plot_b() and is good for debug.
+% % =============================================================================
 % good! a very useful function. by arthur 2021-07-22
 % Usages:
 % get_LB0A0_by_sphx():387:>fill_and_plot_bb():713:>plot_b():213:>draw_comp()
@@ -28,9 +28,28 @@ function BBfilled = fill_and_plot_bb(s, emsicafolder, BB, rmIndices, reorderIdx,
   % zscore on BB
   [BB,mu,sigma] = zscore(BB);
 
-  %% ==============================================
-  %% the broken hole on BB is filled with zero
-  %% ==============================================
+  % Cached-B0 demo runs only need the full source-row matrix. The complete
+  % row count and placement are already encoded by reorderIdx/rmIndices, so
+  % do not load cortical meshes solely to recover those dimensions.
+  if returnBBonly
+    J = numel(reorderIdx);
+    if JJ == J
+      BBfilled = BB;
+    else
+      keptIdx = reorderIdx;
+      keptIdx(rmIndices) = [];
+      if JJ ~= numel(keptIdx)
+        error('fill_and_plot_bb:SizeMismatch', ...
+          'B has %d rows; expected %d reduced or %d full rows.', ...
+          JJ, numel(keptIdx), J);
+      end
+      BBfilled = zeros(J, KK, 'like', BB);
+      BBfilled(keptIdx,:) = BB;
+    end
+    return
+  end
+
+%% ============== (1) The broken hole on BB is filled with zero ==============
   % -arthur 2021-07-27
   [cortex, ~, combined] = get_dipoles(s,'meshspace','both');
   Jc=length(cortex.mesh.vertices);% Jc, the index of cortex in B
@@ -55,9 +74,6 @@ function BBfilled = fill_and_plot_bb(s, emsicafolder, BB, rmIndices, reorderIdx,
     BBfilled(reorderIdx,:)=BB;
   end
 
-% not to plot by bb, just return BB for eg. SigmainvB0
-  if returnBBonly, return; end;
-
   corticalB = BBfilled(1:Jc,:);
   subcorticalB = BBfilled(Jc+1:end,:);
 
@@ -78,4 +94,3 @@ function BBfilled = fill_and_plot_bb(s, emsicafolder, BB, rmIndices, reorderIdx,
 
   % set background to original to prevent further plotting color problem
   whitebg([1 1 1]);
-

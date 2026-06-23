@@ -14,7 +14,7 @@
 %
 % Output:
 %   No explicit output, but a message is displayed indicating the file
-%   or folder has been successfully removed. An error is raised if 
+%   or folder has been successfully removed. An error is raised if
 %   deletion fails.
 %
 % Notes:
@@ -26,9 +26,9 @@
 %
 % Created: 2014-03-14
 % Refined: 2024-11-09 with additional checks to make it more robust for parallel processing, parfor.
-% 
+%
 % See original help documentation for full details...
-
+%
 % Check if filename is a folder and attempt removal if so
 %
 % Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026

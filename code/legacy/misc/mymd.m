@@ -1,4 +1,4 @@
-% mymd() mkdir
+% mymd() mkdir.
 %
 % Arthur C. Tsai arthur@stat.sinica.edu.tw
 % 2014-03-14

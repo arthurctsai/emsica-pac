@@ -1,26 +1,26 @@
-% get_dipoles_subcortical() This function is called by get_dipoles(), idx_idv2avg(), runbem(), lfm_()
+% get_dipoles_subcortical() This function is called by get_dipoles(), idx_idv2avg(), runbem(), lfm_().
 %
 % This function is called by get_dipoles(), idx_idv2avg(), runbem(), lfm_()
 % get_dipoles() > get_dipoles_cortical(), get_dipoles_subcortical()
 %
 % get_dipoles_subcortical()
-% Input: 
+% Input:
 %   For subject with MRI, the input of this function is subcorticalmeshes from get_subcorticalmeshs(s)
 %   For subject without MRI, the input is dipoles_subcortical_reduced_warped.mat from get_dipoles_warping_5layers(s)
 %   but it stored warped reduced mesh only, to get unwarped unreduced mesh we call subcorticalmeshes = get_subcorticalmeshes(s)
-
+%
 % Output:
 %   1. mesh: reduced subcortical mesh (12 meshed have been combined to 1 mesh)
 %   2. subcortical diples
 %   3. dipmatfile file name
 %   4. mesh_subcortical_dec: for subject without MRI, mesh_subcortical_dec is obtained from MNI_20131226_updated.mat which contains original template subcorticals before warping
-% Note: 
+% Note:
 %  1. dipoles = [mesh.vertices/1000 vertNormalsUnit];
 %     2024-05-11
 %     For fMRI, usually reducemesh ='off', we will have dipoles_subcortical.mat only
 %     For EEG with MRI subject, we need dipoles_subcortical_reduced.mat for leadfield calculation and also dipoles_subcortical.mat for plot_l(), plot_b() > get_allbmeshcurv()
-
-%  2. Now we use outer_skin_surface instead of mri_scalp 
+%
+%  2. Now we use outer_skin_surface instead of mri_scalp
 %
 % See http://emsica.art/cortical/get_dipoles_subcortical#output -arthur 2023-04-27
 % See also: get_subcorticalmeshes, get_dipoles_cortical
@@ -56,7 +56,7 @@ mesh_subcortical_dec = []; % default
 alreadyreduced = 0;
 % 123456789012345678901234567890123456789012345678901234567890123456789012345678
 
-%% ==== for subjects without MRI using warping method ====
+%% ============ (1) For subjects without MRI using warping method ============
 if ~hasmri(s) && ~contains(s.subject,'7raicar')
   if ~reducemesh 
     cdisp('red', ['For EEG without MRI subject, we have only dipoles_subcortical_reduced_warp.mat from get_dipoles_warping_5layers(),']);
@@ -87,8 +87,8 @@ if ~hasmri(s) && ~contains(s.subject,'7raicar')
   mesh.segmentLabel = mesh_subcortical_dec.segmentLabel;
   mesh.verticesIdx= mesh_subcortical_dec.verticesIdx;
 
-  %% the following is similar to subcortical_reducepatch() but for subject with warped mesh
-  %% 2024-09-21 rkffabcd
+%% ===== (2) The following is similar to subcortical_reducepatch() but… ======
+% 2024-09-21 rkffabcd
   subcortical_reduced.vertices=[];
   subcortical_reduced.faces=[];
   subcortical_reduced.segmentLabel={};
@@ -167,7 +167,7 @@ if ~hasmri(s) && ~contains(s.subject,'7raicar')
 
 end % if subject has no mri
 
-%% ==== for subjects with MRI ====
+%% ======================== (3) For subjects with MRI ========================
 if hasmri(s)
   if ~reducemesh % call by get_allbmeshcurv()
     dipmatfile = [s.lfmDir 'dipoles_subcortical.mat'];
@@ -200,7 +200,7 @@ if hasmri(s)
   end
 end % if subject has mri
 
-%% plot subcortical meshes
+%% ======================= (4) Plot subcortical meshes =======================
 if plotmore
   if ~hasmri(s)
     % for subject without mri
@@ -227,7 +227,7 @@ if plotmore
   end
 end
 
-%% check the length of mesh.vertices
+%% ================== (5) Check the length of mesh.vertices ==================
 if exist('mesh','var')
   alreadyreduced = (length(mesh.vertices)/10000 < 1);
   if and(alreadyreduced , reducemesh) 
@@ -239,7 +239,7 @@ if exist('mesh','var')
   end
 end
 
-%% ==== for subject with MRI recompute dipoles_subcortical.mat / dipoles_subcortical_reduced.mat =========
+%% ====== (6) For subject with MRI recompute dipoles_subcortical.mat /… ======
   subcorticalmeshes = get_subcorticalmeshes(s);
 
   if reducemesh
@@ -278,10 +278,9 @@ end % if subject has mri && recompute
 % mdisp([mypath(dipfile) ' saved.']);
 
 
-%%=========================================================================
   function mydraw(s,name,subcorticalmeshes,flag)
     ;
-    %% for subjects without MRI
+%% ====================== (7) For subjects without MRI =======================
     if hasmri(s)
       % use outer_skin_surface instead of mri_scalp -arthur 2023-04-27
       % read watershed outer_skin_surface
@@ -329,7 +328,7 @@ end % if subject has mri && recompute
     end % for i=1:5
 
 
-    %% Add legend for each subcortical region -arthur 2023-04-27
+%% ====== (8) Add legend for each subcortical region -arthur 2023-04-27 ======
     if i==5
       n=size(subcorticalmeshes,1)/2;
       n = ceil(n);
@@ -357,7 +356,6 @@ end % if subject has mri && recompute
     mdisp([pngfilename ' is printed.']);
 
 
-    %%=========================================================================
 
     function puttext()
       tmp=get(gca,'Xlim');

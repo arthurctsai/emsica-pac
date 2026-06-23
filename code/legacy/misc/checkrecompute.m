@@ -1,4 +1,4 @@
-% checkrecompute() Check if a file needs to be recomputed based on timestamps
+% checkrecompute() Check if a file needs to be recomputed based on timestamps.
 %
 % checkrecompute - Check if a file needs to be recomputed based on timestamps
 %

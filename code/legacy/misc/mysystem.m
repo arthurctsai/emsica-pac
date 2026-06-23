@@ -1,7 +1,7 @@
-% mysystem() else
+% mysystem() else.
 %
 % Output:
-% Success (status = 0): A status of 0 confirms that the command was executed correctly. 
+% Success (status = 0): A status of 0 confirms that the command was executed correctly.
 % Example 1 in review_sphinv_plot()
 % for k=1:K
 %   % ln -s blank.gif comp_001ersp.png
@@ -12,7 +12,7 @@
 %     verbose = 0;
 %     fprintf([' ' num2str(k)]);
 %   end
-%   mysystem(['ln -s blank.gif ' pngfile], verbose); % 
+%   mysystem(['ln -s blank.gif ' pngfile], verbose); %
 % end
 %
 % Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026

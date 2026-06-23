@@ -1,6 +1,6 @@
 % secs2hms() Secs2hms.
 %
-%SECS2HMS Format a duration in seconds as hours, minutes, and seconds.
+% SECS2HMS Format a duration in seconds as hours, minutes, and seconds.
 %
 % Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026
 % Copyright (c) 2026 Extended EMSICA-PAC contributors

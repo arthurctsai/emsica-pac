@@ -1,7 +1,7 @@
-% gparser() check s
+% gparser() check s.
 %
 % varargin parser for neat defaultsetting processing in most of my emsica functions
-% note. 
+% note.
 % after gparser, recompute becomes 1 or 0 instead of 'on', 'off'
 % 2023-05-25 arthur
 %
@@ -31,7 +31,7 @@ end
   end
  
 g = finputcheck(varargin, defaultsetting);
-  %% define quote
+%% ============================ (1) Define quote =============================
   % g.quote=char(39); % '
 
 if ischar(g)
@@ -93,14 +93,10 @@ end
       end
   end
 
-%% =============================================================================
-%% for eg. get_similarity() and no parameter s asigned
-%% =============================================================================
+%% ========= (2) For eg. get_similarity() and no parameter s asigned =========
 if isempty(s), return; end % for eg. get_similarity which does not have parameter 's'
 
-%% =============================================================================
-%% assign workingdir according to emsicafolder
-%% =============================================================================
+%% ============= (3) Assign workingdir according to emsicafolder =============
 % step 1. validate emsicafolder
 % emsicafolder = 3ica/ICsR101/
 if isfield(g,'emsicafolder') % emsicafolder = '3ica/ICsR101/' 
@@ -141,9 +137,16 @@ if isfield(g,'emsicafolder')
 end
 
 % Finally, assign the workingdir
-if isfield(g,'emsicafolder') % emsicafolder = '3ica/ICsR101/' 
+if isfield(g,'emsicafolder') % emsicafolder = '3ica/ICsR101/'
   g.emsicafolder = emsicafolder;
-  workingdir = [s.subjectdir emsicafolder]; % ~/2_esspfmriyear1/eo01/3ica/ICsR101/' 
+  if isfield(s, 'emsica') && isstruct(s.emsica) && ...
+      isfield(s.emsica, 'output_folder') && ~isempty(s.emsica.output_folder) && ...
+      startsWith(emsicafolder, '6emsica/ICs-synth-')
+    workingdir = char(string(s.emsica.output_folder));
+    if ~endsWith(workingdir, filesep), workingdir = [workingdir filesep]; end
+  else
+    workingdir = [s.subjectdir emsicafolder];
+  end
   g.workingdir = workingdir;
   s.workingdir = workingdir;
 end % if isfield(g,'emsicafolder')
@@ -153,9 +156,7 @@ if isfield(s, 'workingdir')
 end
 
 % keyboard
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% for eg. plot_b_7raicar, pairing3, mmi_7raicar_, get_comps, etc. assign clusterstxt full path according to emsicafolder
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ===== (4) For eg. plot_b_7raicar, pairing3, mmi_7raicar_, get_comps,… =====
 if isfield(g,'emsicafolder') && isfield(g, 'clusterstxt') 
   if ~isempty(g.clusterstxt) % sometimes clusterstxt =='' eg. in mmi_7raicar_() then leave it alone
     % for the case clusterstxt = 'clusters.txt' return full path eg. ~/1_zen/7riacar/6emsica/ICsR01-I/clusters.txt
@@ -172,7 +173,7 @@ if isfield(g,'emsicafolder') && isfield(g, 'clusterstxt')
       % we use default study folder '7raicar', if not you have to asign your full path of clusters.txt
     end
 
-    %% for 1_zen add _paired.txt for the clusterstxt
+%% ============ (5) For 1_zen add _paired.txt for the clusterstxt ============
     if contains(s.studydir, '1_zen') && ~endsWith(g.clusterstxt, '_paired.txt')
       if ~isempty(regexp(s.subject, '\d{2}8$', 'once')) || contains(s.subject, 'post')  
         % check whether s.subject ends with three digits, and the last digit is 8
@@ -191,7 +192,7 @@ if isfield(g,'emsicafolder') && isfield(g, 'clusterstxt')
 
     end % 1_zen
 
-    %% To display the path stored in g.clusterstxt and the date it was created
+%% ==== (6) To display the path stored in g.clusterstxt and the date it… =====
     if isfile(g.clusterstxt)
       fileInfo = dir(g.clusterstxt);
       mdisp('yellow', ['clusterstxt = ' g.clusterstxt ' was created on ', fileInfo.date]);
@@ -206,9 +207,7 @@ if isfield(g,'emsicafolder') && isfield(g, 'clusterstxt')
 end % if isfield(g,'emsicafolder') && isfield(g, 'clusterstxt') 
 
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% for eg. emsica_, emsica_4raicar_, assign emsicatype according to emsicafolder
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ======== (7) For eg. emsica_, emsica_4raicar_, assign emsicatype… =========
 if isfield(g,'emsicafolder') && isfield(g, 'emsicatype') % so emsica_() will enter this segment
   if isempty(g.emsicatype) % which is the default of emsica_()
     switch true
@@ -226,9 +225,7 @@ if isfield(g,'emsicafolder') && isfield(g, 'emsicatype') % so emsica_() will ent
   end
 end
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% extract lapmethod from emsicafolder, for eg. emsica_, emsica_4raicar_, get_LB0A0_by_sphx, get_lap, etc.
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% ======= (8) Extract lapmethod from emsicafolder, for eg. emsica_,… ========
 % lapmethod: ''|'cyto' | 'lhrh' | 'I';
  % 'cyto': use cytoarchitecture invented by arthur in 2021
  % 'lhrh': as in NI2014 emsica paper by arthur 
@@ -259,9 +256,7 @@ if isempty(g.lapmethod) % lapmethod=='' is the default in most of the functions 
   end
 end
 
-%% =============================================================================
-%% for fmri study, asign single subject main folder as 3ica/ICsR01/, so you can load B.mat over there
-%% =============================================================================
+%% ======== (9) For fmri study, asign single subject main folder as… =========
 % Note,
 % case 1. if when calling plot_b() eg. by ica_4raicar_plot_a_b_only() > plot_b() s.workingdir has been asigned as eg. ICsR01, ICsR02,...
 %         then we don't need to asign again here.
@@ -275,9 +270,7 @@ if strcmpi(s.datatype, 'fmri') % for fmri study
   end
 end
 
-%% =============================================================================
-%% for EEG/MEG study, asign single subject main folder as 6emsica/ICsR01/, so you can load B.mat over there
-%% =============================================================================
+%% ====== (10) For EEG/MEG study, asign single subject main folder as… =======
 if strcmpi(s.datatype, 'eeg') || strcmpi(s.datatype, 'meg')   % for EEG/MEG study
   if ~isfield(s, 'workingdir') && ~contains(s.subject, '7raicar')
     s.emsicaDir = [s.subjectdir '3ica/ICsR01/']; % default working dir
@@ -286,9 +279,7 @@ if strcmpi(s.datatype, 'eeg') || strcmpi(s.datatype, 'meg')   % for EEG/MEG stud
   end
 end
 
-%% =============================================================================
-%% in the final case asign working dir by g.emsicafolder
-%% =============================================================================
+%% ======= (11) In the final case asign working dir by g.emsicafolder ========
 % Note, if you are passing s.workingdir, keep it. It will not enter the following.
 % 2013-06-19 Seattle, arhtur
 if ~isfield(s, 'workingdir') && isfield(g,'emsicafolder')

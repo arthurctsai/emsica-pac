@@ -1,7 +1,5 @@
 /outputs/*
 !/outputs/.gitkeep
-/demodata/zm09/6emsica/ICs-synth-infomax-extended-demo-full/
-/demodata/zm09/6emsica/ICs-synth-infomax-extended-smoke-full/
 *.asv
 *.m~
 ._*

@@ -1,6 +1,5 @@
-% lfmsens2chanlocs() transfer lfm.sens (after coregister_() ) to EEG.chanlocs
+% lfmsens2chanlocs() transfer lfm.sens (after coregister_() ) to EEG.chanlocs.
 %
-% lfmsens2chanlocs() transfer lfm.sens (after coregister_() ) to EEG.chanlocs
 % Note:
 %   get_LB0A0_by_sphx() > lfmsens2chanlocs()
 %
@@ -17,7 +16,7 @@
 %
 % History:
 % 2014-07-14 rkffabcd
-% 2021-0714 adjust the code for nonicachans removal from EEG.chanlocs. 
+% 2021-0714 adjust the code for nonicachans removal from EEG.chanlocs.
 %
 % Author: Arthur C. Tsai, Institute of Statistical Science, Academia Sinica, June 2026
 % Copyright (c) 2026 Extended EMSICA-PAC contributors
@@ -100,13 +99,13 @@ mdisp(['Now length(EEG.chanlocs)=' num2str(length(EEG.chanlocs))]);
 mdisp(['and length(lfm.sens)=' num2str(length(label))]);
 
 
-%% transfer lfm.sens channlocation onto EEG.chanlocs
+%% ========== (1) Transfer lfm.sens channlocation onto EEG.chanlocs ==========
 chanlocs_from_sens = struct('labels', label, 'type', 69*ones(length(label),1), 'X', pos(:,2)*100, 'Y', -pos(:,1)*100, 'Z', pos(:,3)*100);
 % x y z -> y -x z
 chanlocs_from_sens = convertlocs( chanlocs_from_sens, 'cart2all');
 
-%% iterate through EEG.chanlocs (1:118), compare the labels field with chanlocs_from_sens, 
-%% and replace each channel’s entire struct if the labels match.
+%% ====== (2) Iterate through EEG.chanlocs (1:118), compare the labels… ======
+% and replace each channel’s entire struct if the labels match.
 
 % 2025-01-30 added by Arthur with ChatGPT help
 unmatched_labels = {}; % Store unmatched labels

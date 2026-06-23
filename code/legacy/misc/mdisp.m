@@ -36,8 +36,7 @@
 %     % verbose = 0, donot show this message, in production phase
 %     % verbose = 1, show this message, in developement phase
 %
-%%
-% Author:
+% %
 % 2024-04-27 Arthur Tsai
 % 2025-01-18 add verbose parameter
 %
