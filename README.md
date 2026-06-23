@@ -24,12 +24,14 @@ Add EEGLAB to the path or set `EEGLAB_ROOT` before setup.
 
 ```matlab
 setup_emsica_pac;
-demo_run_emsica(100, 'demo');
+demo_run_emsica(200, 'demo');
 demo_generate_figures;
 ```
 
-Training starts from the packaged Infomax B0 initializer. Generated EEGLAB
-datasets and PAC caches are written to
+Training starts from the packaged Infomax B0 initializer. After
+`demo_run_emsica` finishes, the Extended EMSICA results are available in the
+`outputs/` folder. For the command above, generated EEGLAB datasets and PAC
+caches are written to
 `outputs/zm09/6emsica/ICs-synth-infomax-extended-demo-full/`, never into
 `demodata/`.
 
